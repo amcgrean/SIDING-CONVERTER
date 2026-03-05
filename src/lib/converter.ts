@@ -35,15 +35,32 @@ export function convertMaterialList(
             return Object.values(entry.itemCodes).some(code => code?.toLowerCase() === lowerCode);
         });
 
+        // If no match found in our master table, we still want to preserve it
         if (!row) {
-            return { sourceItem, targetItem: null, isMatched: false };
+            return {
+                sourceItem,
+                targetItem: {
+                    ...sourceItem,
+                    itemCode: `[REVIEW] ${sourceItem.itemCode}`,
+                    description: `[UNMATCHED] ${sourceItem.description}`
+                },
+                isMatched: false
+            };
         }
 
         const targetCode = row.itemCodes[targetType];
         const isActive = row.activeFor.includes(targetType);
 
         if (!targetCode || !isActive) {
-            return { sourceItem, targetItem: null, isMatched: false };
+            return {
+                sourceItem,
+                targetItem: {
+                    ...sourceItem,
+                    itemCode: `[NO-BRAND-PARITY] ${sourceItem.itemCode}`,
+                    description: `[UNMATCHED] ${row.description}`
+                },
+                isMatched: false
+            };
         }
 
         return {
@@ -51,7 +68,7 @@ export function convertMaterialList(
             targetItem: {
                 itemCode: targetCode,
                 description: row.description,
-                quantity: sourceItem.quantity, // Preserve quantity on conversion
+                quantity: sourceItem.quantity,
                 uom: row.uom
             },
             isMatched: true

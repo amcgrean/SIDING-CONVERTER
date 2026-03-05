@@ -3,7 +3,8 @@
 import { ConversionResult } from "@/lib/converter"
 import { generateERPCsv, downloadCsv } from "@/lib/csvExport"
 import { Button } from "./ui/Button"
-import { DownloadIcon, ArrowRightIcon } from "lucide-react"
+import { DownloadIcon, ArrowRightIcon, AlertTriangleIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface Props {
     results: ConversionResult[]
@@ -13,6 +14,7 @@ interface Props {
 
 export default function ConverterResults({ results, jobNumber, branch }: Props) {
     const handleExport = () => {
+        // Now targetItem is always present (even if prefixed with [REVIEW])
         const targetItems = results.map(r => r.targetItem).filter((item): item is any => item !== null)
         const csvContent = generateERPCsv(targetItems, jobNumber, branch)
         const date = new Date().toISOString().split('T')[0]
@@ -20,10 +22,20 @@ export default function ConverterResults({ results, jobNumber, branch }: Props) 
         downloadCsv(csvContent, filename)
     }
 
+    const unmatchedCount = results.filter(r => !r.isMatched).length
+
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center bg-primary text-primary-foreground p-3 rounded-t-sm">
-                <h2 className="text-lg font-black tracking-tighter uppercase italic">Conversion results</h2>
+                <div className="flex items-center gap-4">
+                    <h2 className="text-lg font-black tracking-tighter uppercase italic">Conversion results</h2>
+                    {unmatchedCount > 0 && (
+                        <span className="flex items-center gap-1 bg-accent text-accent-foreground px-2 py-0.5 text-[9px] font-black uppercase italic">
+                            <AlertTriangleIcon className="w-3 h-3" />
+                            {unmatchedCount} Unmatched
+                        </span>
+                    )}
+                </div>
                 <Button
                     variant="accent"
                     size="sm"
@@ -50,13 +62,24 @@ export default function ConverterResults({ results, jobNumber, branch }: Props) 
                     </thead>
                     <tbody className="divide-y font-mono text-xs">
                         {results.map((res, idx) => (
-                            <tr key={idx} className="hover:bg-accent/5 transition-colors">
+                            <tr
+                                key={idx}
+                                className={cn(
+                                    "hover:bg-accent/5 transition-colors",
+                                    !res.isMatched && "bg-accent/10 italic text-accent-foreground"
+                                )}
+                            >
                                 <td className="p-3 font-bold text-muted-foreground">{res.sourceItem.itemCode}</td>
                                 <td className="p-3 font-bold">{res.sourceItem.quantity}</td>
                                 <td className="p-3 text-center text-accent">
                                     <ArrowRightIcon className="w-4 h-4 mx-auto" />
                                 </td>
-                                <td className="p-3 font-bold text-primary">{res.targetItem?.itemCode}</td>
+                                <td className={cn(
+                                    "p-3 font-bold",
+                                    res.isMatched ? "text-primary" : "text-accent underline decoration-dotted"
+                                )}>
+                                    {res.targetItem?.itemCode}
+                                </td>
                                 <td className="p-3 text-muted-foreground">{res.targetItem?.description}</td>
                                 <td className="p-3 text-center">{res.targetItem?.uom}</td>
                             </tr>
@@ -64,6 +87,19 @@ export default function ConverterResults({ results, jobNumber, branch }: Props) 
                     </tbody>
                 </table>
             </div>
+
+            {unmatchedCount > 0 && (
+                <div className="bg-accent/5 border border-accent/20 p-3 rounded-sm flex items-start gap-3">
+                    <AlertTriangleIcon className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                    <div>
+                        <p className="text-[10px] font-black uppercase text-accent tracking-widest italic">Review Required</p>
+                        <p className="text-[11px] text-muted-foreground leading-tight">
+                            Items highlighted in amber could not be matched to the target brand.
+                            They have been exported with <span className="font-bold">[REVIEW]</span> prefixes for manual lookup in Agility ERP.
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

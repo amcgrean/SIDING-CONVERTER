@@ -1,7 +1,7 @@
-import { CalculationResult } from './calculator';
+import { ParsedItem } from './converter';
 
 export function generateERPCsv(
-    items: CalculationResult[],
+    items: (ParsedItem | { itemCode: string, description: string, quantity: number, uom: string })[],
     jobNumber: string = '',
     branch: string = ''
 ): string {
@@ -24,6 +24,7 @@ export function generateERPCsv(
 }
 
 export function downloadCsv(content: string, filename: string) {
+    if (typeof window === 'undefined') return;
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
