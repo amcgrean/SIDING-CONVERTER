@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as pdfjsLib from "pdfjs-dist";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
 // PDF.js worker setup - in a real Next.js app you might need to point to a local file
 // but for simple text extraction we can try this.
